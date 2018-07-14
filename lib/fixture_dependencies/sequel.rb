@@ -18,6 +18,23 @@ class << FixtureDependencies
   end
   
   def model_save_S(object)
+    object.db_schema.each do |(col, info)|
+      type = info[:type].to_s.downcase
+      next if object[col].nil?
+      if Sequel.respond_to?(:pg_row) && !type.slice!('pg_row_').nil? && object[col].is_a?(Hash)
+        hash = object[col].each_with_object({}) do |(k, v), memo|
+          memo[k.to_sym] = v
+          memo
+        end
+        object[col] = object.db.row_type(type.to_sym, **hash)
+      elsif Sequel.respond_to?(:pg_array) && !type.chomp!('[]').nil?
+        object[col] = Sequel.pg_array(object[col])
+      elsif Sequel.respond_to?(:pg_json) && type == 'json'
+        object[col] = Sequel.pg_json(object[col])
+      elsif Sequel.respond_to?(:pg_jsonb) && type == 'jsonb'
+        object[col] = Sequel.pg_jsonb(object[col])
+      end
+    end
     object.raise_on_save_failure = true
     object.save
   end

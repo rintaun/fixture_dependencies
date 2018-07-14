@@ -299,12 +299,15 @@ class << FixtureDependencies
     case pk = model.primary_key
     when Symbol, Array
       pk
+    when NilClass
+      nil
     else
       pk.to_sym
     end
   end
 
   def fixture_pkv(attributes, fpk)
+    return nil if fpk.nil?
     case fpk
     when Symbol
       attributes[fpk]
